@@ -86,13 +86,31 @@ func updateBookHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"error": "Book not found!"})
 }
 
+func deleteBookHandler(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id := params["id"]
+
+	for index, book := range books {
+		if book.ID == id {
+			books = append(books[:index], books[index+1:]...)
+			w.Header().Set("content-type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{"message": "Book has been deleted"})
+			return
+		}
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Book not found!"})
+}
+
 func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", homePageHandler).Methods("GET")
 	router.HandleFunc("/books", getBooksHandler).Methods("GET")
 	router.HandleFunc("/books", addBookHandler).Methods("POST")
 	router.HandleFunc("/books/{id}", updateBookHandler).Methods("PUT")
-	// Add handler to find a book by id and delete it from the list
+	router.HandleFunc("/books/{id}", deleteBookHandler).Methods("DELETE")
 
 	log.Println("Starting server on port 8081")
 	http.ListenAndServe(":8081", router)
