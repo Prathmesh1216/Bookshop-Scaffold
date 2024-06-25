@@ -26,15 +26,20 @@ func homePageHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Welcome to the Bookshop API!"})
 }
 
-// Handler to return all available books
 func getBooksHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type", "application/json")
+	json.NewEncoder(w).Encode(books)
+}
 
+func addBookHandler(w http.ResponseWriter, r *http.Request) {
+	//	Add the implementation here
 }
 
 func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", homePageHandler).Methods("GET")
-	// Add a new route to return all available books here.
+	router.HandleFunc("/books", getBooksHandler).Methods("GET")
+	// Add a new route to create a new book
 
 	log.Println("Starting server on port 8081")
 	http.ListenAndServe(":8081", router)
