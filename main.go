@@ -32,14 +32,30 @@ func getBooksHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addBookHandler(w http.ResponseWriter, r *http.Request) {
-	//	Add the implementation here
+	var newBook Book
+	json.NewDecoder(r.Body).Decode(&newBook)
+
+	// Validate book data
+	if newBook.Name == "" || newBook.Author == "" || newBook.Price <= 0 {
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Title, Author, and Price are required"})
+		return
+	}
+
+	newBook.ID = xid.New().String()
+	books = append(books, newBook)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(newBook)
 }
 
 func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", homePageHandler).Methods("GET")
 	router.HandleFunc("/books", getBooksHandler).Methods("GET")
-	// Add a new route to create a new book
+	router.HandleFunc("/books", addBookHandler).Methods("POST")
+	// Add handler to find a book by id and update it with the given input params
 
 	log.Println("Starting server on port 8081")
 	http.ListenAndServe(":8081", router)
