@@ -26,15 +26,73 @@ func homePageHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Welcome to the Bookshop API!"})
 }
 
-// Handler to return all available books
 func getBooksHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type", "application/json")
+	json.NewEncoder(w).Encode(books)
+}
 
+func addBookHandler(w http.ResponseWriter, r *http.Request) {
+	var newBook Book
+	json.NewDecoder(r.Body).Decode(&newBook)
+
+	// Validate book data
+	if newBook.Name == "" || newBook.Author == "" || newBook.Price <= 0 {
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Title, Author, and Price are required"})
+		return
+	}
+
+	newBook.ID = xid.New().String()
+	books = append(books, newBook)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(newBook)
+}
+
+func updateBookHandler(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id := params["id"]
+
+	var updatedBook Book
+	err := json.NewDecoder(r.Body).Decode(&updatedBook)
+	if err != nil {
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"message": err.Error()})
+		return
+	}
+
+	// Validate book data
+	if updatedBook.Name == "" || updatedBook.Author == "" || updatedBook.Price <= 0 {
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Title, Author, and Price are required"})
+		return
+	}
+
+	for index, book := range books {
+		if book.ID == id {
+			updatedBook.ID = book.ID
+			books[index] = updatedBook
+			w.Header().Set("content-type", "application/json")
+			json.NewEncoder(w).Encode(updatedBook)
+			return
+		}
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(map[string]string{"error": "Book not found!"})
 }
 
 func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", homePageHandler).Methods("GET")
-	// Add a new route to return all available books here.
+	router.HandleFunc("/books", getBooksHandler).Methods("GET")
+	router.HandleFunc("/books", addBookHandler).Methods("POST")
+	router.HandleFunc("/books/{id}", updateBookHandler).Methods("PUT")
+	// Add handler to find a book by id and delete it from the list
 
 	log.Println("Starting server on port 8081")
 	http.ListenAndServe(":8081", router)
